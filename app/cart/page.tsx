@@ -21,8 +21,8 @@ export default function CartPage() {
         <p className="text-muted-foreground mb-8 text-center max-w-md">
           Looks like you haven&apos;t added anything to your cart yet. Discover our premium blends and start brewing.
         </p>
-        <Button asChild size="lg" className="rounded-full">
-          <Link href="/products">Start Shopping</Link>
+        <Button render={<Link href="/products" />} size="lg" className="rounded-full">
+          Start Shopping
         </Button>
       </div>
     );
@@ -126,10 +126,8 @@ export default function CartPage() {
                 <span className="text-2xl font-bold text-primary">{formatPrice(total)}</span>
               </div>
               
-              <Button asChild size="lg" className="w-full rounded-full h-14 text-lg">
-                <Link href="/checkout">
-                  Proceed to Checkout <ArrowRight className="ml-2 w-5 h-5" />
-                </Link>
+              <Button render={<Link href="/checkout" />} size="lg" className="w-full rounded-full h-14 text-lg">
+                Proceed to Checkout <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </div>
           </div>
