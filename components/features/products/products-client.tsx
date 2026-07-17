@@ -49,7 +49,7 @@ export function ProductsClient() {
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm text-muted-foreground">Category</label>
-              <Select value={category} onValueChange={setCategory}>
+              <Select value={category} onValueChange={(val) => setCategory(val || 'all')}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
@@ -64,7 +64,7 @@ export function ProductsClient() {
             
             <div className="space-y-2">
               <label className="text-sm text-muted-foreground">Sort By</label>
-              <Select value={sort} onValueChange={setSort}>
+              <Select value={sort} onValueChange={(val) => setSort(val || 'newest')}>
                 <SelectTrigger>
                   <SelectValue placeholder="Newest" />
                 </SelectTrigger>

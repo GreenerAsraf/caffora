@@ -18,7 +18,7 @@ const BLOG_POSTS = [
     title: "How to Choose the Perfect Dining Table",
     slug: "choose-perfect-dining-table",
     excerpt: "The dining table is the heart of the home. Learn how to select the right size, shape, and material for your space and lifestyle.",
-    image: "https://images.unsplash.com/photo-1617806118233-18e1c0945594?q=80&w=2070&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1524758631624-e2822e304c36?q=80&w=2070&auto=format&fit=crop",
     category: "Buying Guide",
     date: "April 28, 2026",
     readTime: "8 min read"

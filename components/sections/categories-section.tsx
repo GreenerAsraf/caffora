@@ -12,7 +12,7 @@ const CATEGORIES = [
   {
     name: "Lighting",
     slug: "lighting",
-    image: "https://images.unsplash.com/photo-1513506003901-1e6a229e9d15?q=80&w=2070&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?q=80&w=2070&auto=format&fit=crop",
     count: 128
   },
   {

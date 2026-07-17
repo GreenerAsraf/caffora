@@ -23,7 +23,7 @@ const FEATURED_PRODUCTS: ProductCardType[] = [
     title: "Modern Brass Pendant Light",
     slug: "modern-brass-pendant-light",
     price: 12900,
-    images: ["https://images.unsplash.com/photo-1513506003901-1e6a229e9d15?q=80&w=2070&auto=format&fit=crop"],
+    images: ["https://images.unsplash.com/photo-1505691938895-1758d7feb511?q=80&w=2070&auto=format&fit=crop"],
     rating: 4.5,
     reviewCount: 89,
     category: { name: "Lighting", slug: "lighting" },
