@@ -129,7 +129,7 @@ export function ProductReviews({ productId }: { productId: string }) {
               <label className="block text-sm font-medium mb-2">Comment</label>
               <Textarea 
                 value={comment}
-                onChange={(e) => setComment(e.target.value)}
+                onChange={(e:any) => setComment(e.target.value)}
                 placeholder="Share your thoughts about this product..."
                 className="resize-none"
                 rows={4}
