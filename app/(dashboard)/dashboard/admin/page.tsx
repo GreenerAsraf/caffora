@@ -192,8 +192,8 @@ export default function AdminPage() {
               ))
             )}
             {data.lowStockProducts.length > 0 && (
-              <Button variant="outline" size="sm" className="w-full rounded-full mt-2" asChild>
-                <Link href="/dashboard/admin/products">Manage Products</Link>
+              <Button variant="outline" size="sm" className="w-full rounded-full mt-2" render={<Link href="/dashboard/admin/products" />}>
+                Manage Products
               </Button>
             )}
           </CardContent>
