@@ -1,71 +1,123 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Filter } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter, PackageSearch, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useProducts } from '@/hooks/use-products';
 import { ProductCard } from '@/components/cards/product-card';
-import { ProductCardSkeleton } from '@/components/cards/product-card-skeleton';
+import { ProductGridSkeleton } from '@/components/skeletons/product-grid-skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export function ProductsClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
-  const debouncedSearch = useDebounce(searchTerm, 500);
-  
-  const [category, setCategory] = useState(searchParams.get('category') || 'all');
-  const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
 
-  // Sync state to URL params
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
+  const [category, setCategory] = useState(searchParams.get('category') || 'all');
+  const [minPrice, setMinPrice] = useState(searchParams.get('minPrice') || '');
+  const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
+  const [rating, setRating] = useState(searchParams.get('rating') || 'all');
+  const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
+  const debouncedSearch = useDebounce(searchTerm, 500);
+  const debouncedMin = useDebounce(minPrice, 500);
+  const debouncedMax = useDebounce(maxPrice, 500);
+
+  const page = Number(searchParams.get('page') || 1);
+
   useEffect(() => {
     const params = new URLSearchParams();
     if (debouncedSearch) params.set('q', debouncedSearch);
-    if (category && category !== 'all') params.set('category', category);
-    if (sort && sort !== 'newest') params.set('sort', sort);
-    
+    if (category !== 'all') params.set('category', category);
+    if (debouncedMin) params.set('minPrice', debouncedMin);
+    if (debouncedMax) params.set('maxPrice', debouncedMax);
+    if (rating !== 'all') params.set('rating', rating);
+    if (sort !== 'newest') params.set('sort', sort);
+    if (page > 1) params.set('page', String(page));
     router.push(`?${params.toString()}`, { scroll: false });
-  }, [debouncedSearch, category, sort, router]);
+  }, [debouncedSearch, category, debouncedMin, debouncedMax, rating, sort, page, router]);
 
-  // Read current params to fetch products
-  const { products, loading } = useProducts({
+  const { products, loading, pagination, categories } = useProducts({
     q: searchParams.get('q') || undefined,
     category: searchParams.get('category') || undefined,
-    sort: searchParams.get('sort') || undefined,
+    minPrice: searchParams.get('minPrice') || undefined,
+    maxPrice: searchParams.get('maxPrice') || undefined,
+    rating: searchParams.get('rating') || undefined,
+    sort: searchParams.get('sort') || 'newest',
+    page,
+    pageSize: 8,
   });
 
+  const setPage = (nextPage: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextPage <= 1) params.delete('page');
+    else params.set('page', String(nextPage));
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
+
+  const resetFilters = () => {
+    setSearchTerm('');
+    setCategory('all');
+    setMinPrice('');
+    setMaxPrice('');
+    setRating('all');
+    setSort('newest');
+    router.push('/products', { scroll: false });
+  };
+
   return (
-    <div className="flex flex-col md:flex-row gap-8">
-      {/* Sidebar Filters */}
-      <aside className="w-full md:w-64 shrink-0 space-y-6">
-        <div>
-          <h3 className="font-medium flex items-center gap-2 mb-3">
-            <Filter className="w-4 h-4" /> Filters
+    <div className="flex flex-col gap-8 md:flex-row">
+      <aside className="w-full shrink-0 space-y-6 md:w-72" aria-label="Product filters">
+        <div className="rounded-2xl border border-border bg-surface p-5">
+          <h3 className="mb-4 flex items-center gap-2 font-medium">
+            <Filter className="h-4 w-4" aria-hidden="true" /> Filters
           </h3>
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Category</label>
-              <Select value={category} onValueChange={(val) => setCategory(val || 'all')}>
-                <SelectTrigger>
+              <label className="text-sm text-muted-foreground" htmlFor="category-filter">Category</label>
+              <Select value={category} onValueChange={(value) => setCategory(value || 'all')}>
+                <SelectTrigger id="category-filter" aria-label="Filter by category">
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="cat-1">Coffee Beans</SelectItem>
-                  <SelectItem value="cat-2">Equipment</SelectItem>
-                  <SelectItem value="cat-3">Accessories</SelectItem>
+                  {categories.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground" htmlFor="min-price">Min price</label>
+                <Input id="min-price" inputMode="numeric" placeholder="0" value={minPrice} onChange={(e) => setMinPrice(e.target.value.replace(/[^0-9]/g, ''))} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground" htmlFor="max-price">Max price</label>
+                <Input id="max-price" inputMode="numeric" placeholder="100" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value.replace(/[^0-9]/g, ''))} />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Sort By</label>
-              <Select value={sort} onValueChange={(val) => setSort(val || 'newest')}>
-                <SelectTrigger>
+              <label className="text-sm text-muted-foreground" htmlFor="rating-filter">Minimum rating</label>
+              <Select value={rating} onValueChange={(value) => setRating(value || 'all')}>
+                <SelectTrigger id="rating-filter" aria-label="Filter by rating">
+                  <SelectValue placeholder="Any rating" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any rating</SelectItem>
+                  <SelectItem value="4">4 stars and up</SelectItem>
+                  <SelectItem value="3">3 stars and up</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm text-muted-foreground" htmlFor="sort-products">Sort by</label>
+              <Select value={sort} onValueChange={(value) => setSort(value || 'newest')}>
+                <SelectTrigger id="sort-products" aria-label="Sort products">
                   <SelectValue placeholder="Newest" />
                 </SelectTrigger>
                 <SelectContent>
@@ -76,35 +128,37 @@ export function ProductsClient() {
                 </SelectContent>
               </Select>
             </div>
+
+            <Button variant="outline" className="w-full" onClick={resetFilters}>Reset filters</Button>
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 space-y-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search products..." 
-            className="pl-9 bg-surface"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Input aria-label="Search products" placeholder="Search products..." className="bg-surface pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {loading ? (
-            Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)
-          ) : products.length > 0 ? (
-            products.map(product => (
-              <ProductCard key={product.id} product={product as any} />
-            ))
-          ) : (
-            <div className="col-span-full py-12 text-center text-muted-foreground">
-              No products found matching your criteria.
+        {loading ? <ProductGridSkeleton /> : products.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {products.map((product) => <ProductCard key={product.id} product={product} />)}
             </div>
-          )}
-        </div>
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <p className="text-sm text-muted-foreground">Showing page {pagination.page} of {pagination.totalPages} ({pagination.total} products)</p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" onClick={() => setPage(pagination.page - 1)} disabled={pagination.page <= 1} aria-label="Previous page"><ChevronLeft className="h-4 w-4" /></Button>
+                {Array.from({ length: pagination.totalPages }).map((_, index) => (
+                  <Button key={index + 1} variant={pagination.page === index + 1 ? 'default' : 'outline'} size="icon" onClick={() => setPage(index + 1)} aria-label={`Page ${index + 1}`}>{index + 1}</Button>
+                ))}
+                <Button variant="outline" size="icon" onClick={() => setPage(pagination.page + 1)} disabled={pagination.page >= pagination.totalPages} aria-label="Next page"><ChevronRight className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <EmptyState icon={PackageSearch} title="No products found" description="Try a different search term, category, price range, or rating filter." />
+        )}
       </main>
     </div>
   );

@@ -24,14 +24,16 @@ const getProduct = async (id: string) => {
       'https://images.unsplash.com/photo-1587734195503-904fca47e0e9?auto=format&fit=crop&w=800&q=80'
     ],
     stock: 50,
-    category: { name: 'Coffee Beans' },
+    category: { name: 'Coffee Beans', slug: 'coffee-beans' },
     rating: 4.8,
     reviewCount: 124,
+    featured: true,
   };
 };
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const product = await getProduct(params.id);
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const product = await getProduct(id);
   
   if (!product) {
     return { title: 'Product Not Found' };
@@ -43,8 +45,9 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   };
 }
 
-export default async function ProductDetailPage({ params }: { params: { id: string } }) {
-  const product = await getProduct(params.id);
+export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const product = await getProduct(id);
 
   if (!product) {
     notFound();
@@ -60,9 +63,10 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
     images: ['https://images.unsplash.com/photo-1559525839-b184a4d698c7?auto=format&fit=crop&w=800&q=80'],
     stock: 10,
     categoryId: 'cat-1',
-    category: { name: 'Coffee Beans' },
+    category: { name: 'Coffee Beans', slug: 'coffee-beans' },
     rating: 4.5,
     reviewCount: 30,
+    featured: false,
   }));
 
   return (
@@ -143,9 +147,11 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
         </div>
 
         {/* Related Products */}
-        <RelatedProducts products={related as any} />
+        <RelatedProducts products={related} />
         
       </div>
     </div>
   );
 }
+
+

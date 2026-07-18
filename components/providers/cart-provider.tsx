@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { Product } from '@/hooks/use-products';
@@ -83,8 +83,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (stored) {
         dispatch({ type: 'INIT', payload: JSON.parse(stored) });
       }
-    } catch (e) {
-      console.error('Failed to load cart from local storage', e);
+    } catch {
+      localStorage.removeItem('caffora-cart');
     }
   }, []);
 
@@ -106,3 +106,4 @@ export const useCartContext = () => {
   }
   return context;
 };
+

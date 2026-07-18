@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
@@ -7,23 +7,24 @@ import { useCart } from '@/hooks/use-cart';
 import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default function CartPage() {
   const { items, total, itemCount, updateQuantity, removeItem, clearCart } = useCart();
 
   if (items.length === 0) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center p-4">
-        <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-6">
-          <ShoppingBag className="w-10 h-10 text-muted-foreground" />
-        </div>
-        <h2 className="text-3xl font-playfair font-bold mb-4">Your cart is empty</h2>
-        <p className="text-muted-foreground mb-8 text-center max-w-md">
-          Looks like you haven&apos;t added anything to your cart yet. Discover our premium blends and start brewing.
-        </p>
-        <Button render={<Link href="/products" />} size="lg" className="rounded-full">
-          Start Shopping
-        </Button>
+      <div className="min-h-[70vh] p-4">
+        <EmptyState
+          icon={ShoppingBag}
+          title="Your cart is empty"
+          description="Looks like you haven't added anything to your cart yet. Discover our premium blends and start brewing."
+          action={
+            <Button render={<Link href="/products" />} size="lg" className="rounded-full">
+              Start Shopping
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -65,32 +66,16 @@ export default function CartPage() {
                   
                   <div className="flex items-center justify-between mt-4">
                     <div className="flex items-center gap-1 border border-border rounded-lg p-1 bg-background">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 rounded-md"
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        disabled={item.quantity <= 1}
-                      >
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md" onClick={() => updateQuantity(item.id, item.quantity - 1)} disabled={item.quantity <= 1} aria-label={`Decrease quantity for ${item.product.title}`}> 
                         <Minus className="h-3 w-3" />
                       </Button>
                       <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 rounded-md"
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      >
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md" onClick={() => updateQuantity(item.id, item.quantity + 1)} aria-label={`Increase quantity for ${item.product.title}`}> 
                         <Plus className="h-3 w-3" />
                       </Button>
                     </div>
                     
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => removeItem(item.id)}
-                    >
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => removeItem(item.id)} aria-label={`Remove ${item.product.title} from cart`}> 
                       <Trash2 className="h-5 w-5" />
                     </Button>
                   </div>
@@ -136,3 +121,4 @@ export default function CartPage() {
     </div>
   );
 }
+

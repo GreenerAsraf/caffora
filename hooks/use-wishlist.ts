@@ -1,3 +1,4 @@
+﻿/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
 import { Product } from '@/hooks/use-products';
 import { toast } from 'sonner';
@@ -9,7 +10,9 @@ export function useWishlist() {
     try {
       const stored = localStorage.getItem('caffora-wishlist');
       if (stored) setWishlist(JSON.parse(stored));
-    } catch (e) {}
+    } catch {
+      localStorage.removeItem('caffora-wishlist');
+    }
   }, []);
 
   useEffect(() => {
@@ -31,3 +34,4 @@ export function useWishlist() {
 
   return { wishlist, toggleWishlist, isInWishlist };
 }
+

@@ -1,3 +1,4 @@
+﻿/* eslint-disable react-hooks/set-state-in-effect */
 "use client"
 
 import { createContext, useContext, useEffect, useState } from "react"
@@ -83,3 +84,4 @@ export function useTheme(): ThemeContextValue {
   }
   return ctx
 }
+

@@ -1,15 +1,16 @@
-"use client"
+﻿"use client"
 
 import { ThemeProvider } from "./theme-provider"
+import { AuthProvider } from "./auth-provider"
 import { CartProvider } from "./cart-provider"
 import { Toaster } from "sonner"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
-      <CartProvider>
-        {children}
-      </CartProvider>
+      <AuthProvider>
+        <CartProvider>{children}</CartProvider>
+      </AuthProvider>
       <Toaster
         position="top-right"
         richColors

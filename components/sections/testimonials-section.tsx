@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect } from "react"
 import Image from "next/image"
@@ -71,7 +71,7 @@ export function TestimonialsSection() {
             What Our Clients Say
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl">
-            Don't just take our word for it. Discover how our pieces have transformed spaces and elevated everyday living.
+            Don&apos;t just take our word for it. Discover how our pieces have transformed spaces and elevated everyday living.
           </p>
         </div>
 
@@ -96,7 +96,7 @@ export function TestimonialsSection() {
                     </div>
                     
                     <p className="text-muted-foreground text-lg italic flex-1 mb-8">
-                      "{testimonial.content}"
+                      &ldquo;{testimonial.content}&rdquo;
                     </p>
                     
                     <div className="flex items-center gap-4 mt-auto">
@@ -128,3 +128,4 @@ export function TestimonialsSection() {
     </section>
   )
 }
+

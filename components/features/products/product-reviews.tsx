@@ -1,9 +1,10 @@
-'use client';
+﻿'use client';
 
 import { Star } from 'lucide-react';
 import { ratingToStars } from '@/lib/utils';
 
 export function ProductReviews({ productId }: { productId: string }) {
+  void productId;
   // Mock reviews for now
   const reviews = [
     { id: 1, user: 'Alice', rating: 5, comment: 'Absolutely amazing coffee!', date: '2 days ago' },
@@ -51,3 +52,4 @@ export function ProductReviews({ productId }: { productId: string }) {
     </div>
   );
 }
+
