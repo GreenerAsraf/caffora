@@ -212,7 +212,7 @@ export default function AdminProductsPage() {
               <Label>Category <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <Select
                 value={formData.categoryId || 'none'}
-                onValueChange={val => setFormData({ ...formData, categoryId: val === 'none' ? '' : val })}
+                onValueChange={val => setFormData({ ...formData, categoryId: val === 'none' || val === null ? '' : val })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="No Category" />
