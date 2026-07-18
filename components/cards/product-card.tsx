@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image"
 import Link from "next/link"
 import { Heart, Star } from "lucide-react"
@@ -8,9 +10,11 @@ import { Badge } from "@/components/ui/badge"
 
 interface ProductCardProps {
   product: ProductCardType
+  isWishlisted?: boolean
+  onToggleWishlist?: () => void
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, isWishlisted = false, onToggleWishlist }: ProductCardProps) {
   const isDiscounted = product.comparePrice && product.comparePrice > product.price
   
   return (
@@ -31,10 +35,16 @@ export function ProductCard({ product }: ProductCardProps) {
       <Button
         variant="ghost"
         size="icon-sm"
-        className="absolute top-3 right-3 z-10 bg-background/70 backdrop-blur-md hover:bg-background/90 hover:text-red-500 rounded-full opacity-0 transition-opacity group-hover:opacity-100 shadow-sm"
+        onClick={(e) => {
+          e.preventDefault();
+          if (onToggleWishlist) onToggleWishlist();
+        }}
+        className={`absolute top-3 right-3 z-10 bg-background/70 backdrop-blur-md hover:bg-background/90 rounded-full transition-opacity shadow-sm ${
+          isWishlisted ? 'text-red-500 opacity-100 hover:text-red-600' : 'opacity-0 hover:text-red-500 group-hover:opacity-100'
+        }`}
         aria-label="Add to wishlist"
       >
-        <Heart className="h-4 w-4" />
+        <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-current' : ''}`} />
       </Button>
 
       {/* Image */}
@@ -50,7 +60,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
       {/* Content */}
       <div className="flex flex-1 flex-col p-4 bg-card">
-        <div className="mb-1 text-xs text-muted-foreground uppercase tracking-wider font-medium">{product.category.name}</div>
+        <div className="mb-1 text-xs text-muted-foreground uppercase tracking-wider font-medium">{product.category?.name || 'Uncategorized'}</div>
         <Link href={`/products/${product.slug}`} className="group-hover:text-primary transition-colors outline-none">
           <h3 className="line-clamp-1 font-semibold text-foreground text-sm sm:text-base" title={product.title}>{product.title}</h3>
         </Link>

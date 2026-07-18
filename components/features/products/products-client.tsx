@@ -11,10 +11,12 @@ import { useProducts } from '@/hooks/use-products';
 import { ProductCard } from '@/components/cards/product-card';
 import { ProductGridSkeleton } from '@/components/skeletons/product-grid-skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useWishlist } from '@/hooks/use-wishlist';
 
 export function ProductsClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isInWishlist, toggleWishlist } = useWishlist();
 
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
   const [category, setCategory] = useState(searchParams.get('category') || 'all');
@@ -143,7 +145,14 @@ export function ProductsClient() {
         {loading ? <ProductGridSkeleton /> : products.length > 0 ? (
           <>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {products.map((product) => <ProductCard key={product.id} product={product} />)}
+              {products.map((product) => (
+                <ProductCard 
+                  key={product.id} 
+                  product={product} 
+                  isWishlisted={isInWishlist(product.id)}
+                  onToggleWishlist={() => toggleWishlist(product)}
+                />
+              ))}
             </div>
             <div className="flex items-center justify-between gap-3 pt-2">
               <p className="text-sm text-muted-foreground">Showing page {pagination.page} of {pagination.totalPages} ({pagination.total} products)</p>

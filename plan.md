@@ -557,3 +557,243 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 
 > [!NOTE]
 > **Image uploads**: **Cloudinary** (free tier) or local `/public` folder for admin product images?
+
+
+plan from claude sonnet
+# Frontend ↔ Backend Integration Plan
+
+## Background
+
+Both the backend (Express + Prisma + PostgreSQL on Neon) and frontend (Next.js 16) are already substantially built. The backend has **all API routes** fully implemented (`/auth`, `/products`, `/categories`, `/cart`, `/orders`, `/reviews`, `/users`, `/dashboard`). The frontend has the UI, providers, and hooks — but is **wired to mock data** instead of the real API. This plan wires everything together.
+
+## What Is Already Done ✅
+- Backend: all REST routes, Prisma schema, JWT auth, CORS, cookie-based sessions
+- Frontend: `AuthProvider`, `CartProvider`, `apiRequest` fetch wrapper, types, all page UI shells
+- `lib/api.ts`: base `apiRequest` + `authApi` (login/register/me/logout)
+
+## What Needs to Be Done
+
+---
+
+## 1. API Client Layer — `lib/api.ts`
+
+**Currently:** Only has `authApi`. Products, cart, orders, categories, reviews, users, dashboard all have no API methods.
+
+**Plan:** Expand `lib/api.ts` with typed API modules for every resource:
+- `productsApi` — `list(params)`, `getById(id)`, `create(data)`, `update(id, data)`, `delete(id)`
+- `categoriesApi` — `list()`, `create(data)`, `update(id, data)`, `delete(id)`
+- `cartApi` — `get()`, `addItem(productId, qty)`, `updateItem(itemId, qty)`, `removeItem(itemId)`, `clear()`
+- `ordersApi` — `create(address)`, `list(page)`, `getById(id)`, `updateStatus(id, status)`
+- `reviewsApi` — `getForProduct(productId)`, `create(productId, data)`, `delete(id)`
+- `usersApi` — `list(page)`, `getById(id)`, `updateRole(id, role)`
+- `dashboardApi` — `getUser()`, `getAdmin()`, `getAnalytics()`, `getWishlist()`, `toggleWishlist(productId)`
+
+---
+
+## 2. `hooks/use-products.ts` — Replace mock with real API
+
+**Currently:** Uses 24 hardcoded mock products with fake filtering.
+
+**Plan:** Rewrite to call `GET /api/products` with search params (q, category, minPrice, maxPrice, rating, sort, page, limit). Keep the same interface so `products-client.tsx` needs no changes.
+
+---
+
+## 3. `components/providers/cart-provider.tsx` — Sync with backend
+
+**Currently:** localStorage-only, no backend sync. Cart type mismatches the backend response.
+
+**Plan:**
+- After login: fetch cart from `/api/cart` and merge with local cart (upsert local items to backend, then pull fresh server state)
+- `addItem` → calls `POST /api/cart/items` if authenticated, else stays local
+- `removeItem` → calls `DELETE /api/cart/items/:itemId` if authenticated
+- `updateQuantity` → calls `PUT /api/cart/items/:itemId` if authenticated
+- `clearCart` → calls `DELETE /api/cart` if authenticated
+- On logout: clear local cart state
+
+The `use-cart.ts` hook stays the same interface (addItem, removeItem, etc.) so nothing in the UI breaks.
+
+---
+
+## 4. `hooks/use-wishlist.ts` — Wire to backend
+
+**Currently:** localStorage only.
+
+**Plan:** Call `POST /api/dashboard/wishlist/toggle`, `GET /api/dashboard/wishlist`. Sync on auth state change.
+
+---
+
+## 5. `/products` page — Real data
+
+**Currently:** `products-client.tsx` calls the mock `useProducts` hook.
+
+The hook rewrite in step 2 is the only change needed. The `products-client.tsx` UI stays untouched.
+
+---
+
+## 6. `/products/[id]` page — Real product detail
+
+**Currently:** `[id]/page.tsx` likely has mock data (need to verify/fix).
+
+**Plan:**
+- Server Component fetches `GET /api/products/:id` 
+- `product-reviews.tsx` → calls `GET /api/reviews/product/:id`
+- Review submission form calls `POST /api/reviews`
+
+---
+
+## 7. Checkout `placeOrder` — Call real backend
+
+**Currently:** Saves order to `localStorage` as `caffora-order-${orderId}`. Never calls the backend.
+
+**Plan:** Replace `localStorage` write with `POST /api/orders` → `{ address }`. After success, clear local cart, redirect to `/orders/${order.id}`.
+
+---
+
+## 8. `/orders/[id]` page — Fetch real order
+
+**Currently:** Reads from `localStorage.getItem('caffora-order-...')`.
+
+**Plan:** Call `GET /api/orders/:id`. Show item list, total, status badge, shipping address.
+
+---
+
+## 9. Dashboard — User & Admin
+
+### User Dashboard `/dashboard`
+**Currently:** Likely shows static/demo data.
+**Plan:** Call `GET /api/dashboard` → show real order count, lifetime spend, wishlist count, recent orders.
+
+### User Orders `/dashboard/orders`
+**Currently:** Likely static.
+**Plan:** Call `GET /api/orders?page=N` → paginated table.
+
+### User Wishlist `/dashboard/wishlist`
+**Currently:** Likely static.
+**Plan:** Call `GET /api/dashboard/wishlist` → product grid.
+
+### User Profile `/dashboard/profile`
+**Plan:** Call `GET /api/auth/me` for current data, `PUT /api/users/profile` to save.
+
+---
+
+## 10. Admin Dashboard
+
+### Admin Overview `/dashboard/admin`
+**Plan:** Call `GET /api/dashboard/admin` → stats cards + recent orders table + low-stock alerts.
+
+### Admin Products `/dashboard/admin/products`
+**Plan:** Full CRUD table — calls `GET /api/products`, `POST /api/products`, `PUT /api/products/:id`, `DELETE /api/products/:id`. Modal form for add/edit. Category select dropdown from `GET /api/categories`.
+
+### Admin Categories `/dashboard/admin/categories`
+**Plan:** Full CRUD — `GET /api/categories`, `POST /api/categories`, `PUT /api/categories/:id`, `DELETE /api/categories/:id`.
+
+### Admin Users `/dashboard/admin/users`
+**Plan:** Paginated table from `GET /api/users`. Role toggle calls `PATCH /api/users/:id/role`.
+
+### Admin Analytics `/dashboard/admin/analytics`
+**Plan:** Call `GET /api/dashboard/admin/analytics` → feed into Recharts bar/line/pie charts.
+
+---
+
+## 11. `next.config.ts` — Add image domains
+
+The backend may return Unsplash / pravatar / etc. image URLs. Add missing remote patterns.
+
+---
+
+## Open Questions
+
+> [!IMPORTANT]
+> **Cart merge strategy**: When a logged-in user has both local (guest) cart items AND a server cart, should we:
+> a) Merge (add guest items to server cart), or
+> b) Replace (server cart wins)?
+> **Recommended: Merge** — push each local item to the server, then pull fresh.
+
+> [!IMPORTANT]
+> **OrderStatus mismatch**: The DB uses `PENDING | PROCESSING | SHIPPED | DELIVERED | CANCELLED` but `types/index.ts` has `PENDING | CONFIRMED | SHIPPED | DELIVERED | CANCELLED`. Need to align — recommend updating `types/index.ts` to match the DB enum.
+
+> [!NOTE]
+> **Stripe keys**: The `.env` has `placeholder_stripe_secret_key`. Checkout will run in **mock/simulated mode** (no real card charge) unless real Stripe keys are added. This is acceptable for portfolio.
+
+> [!NOTE]
+> **Image uploads for admin products**: Currently no file upload endpoint. Admin product images will be entered as **URLs** (e.g. Unsplash links). A future enhancement can add Cloudinary upload.
+
+---
+
+## Proposed Changes
+
+### `lib/api.ts` — [MODIFY]
+Add all resource API modules.
+
+### `hooks/use-products.ts` — [MODIFY]
+Replace mock with real `GET /api/products` call.
+
+### `hooks/use-wishlist.ts` — [MODIFY]
+Wire to backend wishlist toggle + fetch.
+
+### `components/providers/cart-provider.tsx` — [MODIFY]
+Add backend sync for authenticated users.
+
+### `types/index.ts` — [MODIFY]
+Fix `OrderStatus` to match DB enum (`PROCESSING` instead of `CONFIRMED`).
+
+### `next.config.ts` — [MODIFY]
+Add `i.pravatar.cc` remote pattern.
+
+### `app/checkout/page.tsx` — [MODIFY]
+Replace localStorage order write with `POST /api/orders`.
+
+### `app/orders/[id]/page.tsx` — [MODIFY] or [NEW]
+Fetch real order from `GET /api/orders/:id`.
+
+### `app/(marketing)/products/[id]/page.tsx` — [MODIFY]
+Fetch product from `GET /api/products/:id`.
+
+### `components/features/products/product-reviews.tsx` — [MODIFY]
+Fetch from API + submit review form.
+
+### `app/(dashboard)/dashboard/page.tsx` — [MODIFY]
+Real user dashboard data.
+
+### `app/(dashboard)/dashboard/orders/page.tsx` — [MODIFY]
+Real paginated orders.
+
+### `app/(dashboard)/dashboard/wishlist/page.tsx` — [MODIFY]
+Real wishlist from API.
+
+### `app/(dashboard)/dashboard/profile/page.tsx` — [MODIFY]
+Real profile fetch + update.
+
+### `app/(dashboard)/dashboard/admin/page.tsx` — [MODIFY]
+Real admin stats.
+
+### `app/(dashboard)/dashboard/admin/products/page.tsx` — [MODIFY]
+Full CRUD product management table.
+
+### `app/(dashboard)/dashboard/admin/categories/page.tsx` — [MODIFY]
+Full CRUD category management.
+
+### `app/(dashboard)/dashboard/admin/users/page.tsx` — [MODIFY]
+User list with role toggle.
+
+### `app/(dashboard)/dashboard/admin/analytics/page.tsx` — [MODIFY]
+Charts with real data.
+
+---
+
+## Verification Plan
+
+### Manual
+1. Register → login → see user in admin dashboard
+2. Admin creates a category → creates a product → product appears on `/products`
+3. User browses products, adds to cart → cart persists on refresh
+4. User checks out → order created in DB → appears in `/dashboard/orders`
+5. Admin updates order status → user sees updated status
+6. User leaves a review → review appears on product page
+7. Admin analytics charts reflect real order/revenue data
+
+### Build Check
+```bash
+cd caffora-client && npm run build
+```
+Must compile with no type errors.

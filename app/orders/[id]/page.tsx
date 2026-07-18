@@ -4,45 +4,82 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { CheckCircle2, PackageCheck } from 'lucide-react';
+import { CheckCircle2, PackageCheck, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { formatDate, formatPrice } from '@/lib/utils';
+import { useAuth } from '@/components/providers/auth-provider';
+import { ordersApi } from '@/lib/api';
 
-type StoredOrder = {
+type RealOrder = {
   id: string;
-  items: Array<{ id: string; quantity: number; product: { title: string; slug: string; images: string[]; price: number } }>;
-  subtotal: number;
-  shipping: number;
-  tax: number;
+  items: Array<{ id: string; quantity: number; price: number; product: { title: string; slug: string; images: string[]; price: number } }>;
   total: number;
   status: string;
-  address: { fullName: string; street: string; city: string; state: string; zip: string; country: string; phone?: string };
+  address: any;
   paymentId?: string;
   createdAt: string;
 };
 
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
-  const [order, setOrder] = useState<StoredOrder | null>(null);
+  const [order, setOrder] = useState<RealOrder | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { accessToken, status } = useAuth();
 
   useEffect(() => {
-    const stored = localStorage.getItem(`caffora-order-${params.id}`);
-    if (stored) setOrder(JSON.parse(stored));
-  }, [params.id]);
+    let active = true;
+
+    if (status === 'authenticated' && accessToken) {
+      ordersApi.getById(params.id, accessToken)
+        .then((res) => {
+          if (active && res) {
+            setOrder(res);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to fetch order", err);
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    } else if (status === 'guest') {
+      // Fallback to local storage for guest/mock checkout
+      const stored = localStorage.getItem(`caffora-order-${params.id}`);
+      if (stored) {
+        setOrder(JSON.parse(stored));
+      }
+      setLoading(false);
+    } else if (status === 'loading') {
+       // Wait for auth to resolve
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [params.id, accessToken, status]);
+
+  if (loading || status === 'loading') {
+    return <div className="min-h-[70vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
 
   if (!order) {
     return (
       <div className="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center px-4 text-center">
         <PackageCheck className="mb-4 h-12 w-12 text-primary" />
-        <h1 className="font-playfair text-3xl font-bold">Order not found locally</h1>
-        <p className="mt-3 text-muted-foreground">Orders placed in portfolio mode are saved in this browser. Backend orders can be viewed once the API is connected.</p>
+        <h1 className="font-playfair text-3xl font-bold">Order not found</h1>
+        <p className="mt-3 text-muted-foreground">The order could not be found. Please check your order ID or ensure you are logged in.</p>
         <Button render={<Link href="/products" />} className="mt-6 rounded-full">Continue Shopping</Button>
       </div>
     );
   }
 
+  // Calculate subtotal from items if not provided by backend (backend only provides total)
+  const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const tax = Math.round(subtotal * 0.0825);
+  // Reconstruct shipping if not explicitly saved on backend (or just assume remainder is shipping/discounts, for now we will just show total)
+  
   return (
     <div className="min-h-screen bg-background py-10">
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
@@ -69,7 +106,7 @@ export default function OrderDetailPage() {
                       <Link href={`/products/${item.product.slug}`} className="font-medium hover:text-primary">{item.product.title}</Link>
                       <p className="mt-1 text-sm text-muted-foreground">Quantity: {item.quantity}</p>
                     </div>
-                    <div className="font-semibold">{formatPrice(item.product.price * item.quantity)}</div>
+                    <div className="font-semibold">{formatPrice(item.price * item.quantity)}</div>
                   </div>
                 </div>
               ))}
@@ -79,14 +116,17 @@ export default function OrderDetailPage() {
           <aside className="space-y-6">
             <section className="rounded-2xl border border-border bg-surface p-6">
               <h2 className="font-playfair text-xl font-bold">Shipping</h2>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">{order.address.fullName}<br />{order.address.street}<br />{order.address.city}, {order.address.state} {order.address.zip}<br />{order.address.country}</p>
+              {order.address ? (
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">{order.address.fullName}<br />{order.address.street}<br />{order.address.city}, {order.address.state} {order.address.zip}<br />{order.address.country}</p>
+              ) : (
+                <p className="mt-3 text-sm text-muted-foreground">No address found</p>
+              )}
             </section>
             <section className="rounded-2xl border border-border bg-surface p-6">
               <h2 className="font-playfair text-xl font-bold">Summary</h2>
               <div className="mt-4 space-y-3 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(order.subtotal)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span>{order.shipping === 0 ? 'Free' : formatPrice(order.shipping)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Tax</span><span>{formatPrice(order.tax)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Shipping & Tax</span><span>{formatPrice(order.total - subtotal)}</span></div>
               </div>
               <Separator className="my-4" />
               <div className="flex justify-between font-bold"><span>Total</span><span className="text-primary">{formatPrice(order.total)}</span></div>

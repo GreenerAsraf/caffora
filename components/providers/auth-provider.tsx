@@ -2,7 +2,7 @@
 
 /* eslint-disable react-hooks/set-state-in-effect */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
-import { authApi } from "@/lib/api"
+import { authApi, setOnTokenRefreshed } from "@/lib/api"
 import { getDemoUser } from "@/lib/demo-users"
 import type { User } from "@/types"
 
@@ -25,6 +25,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [status, setStatus] = useState<AuthStatus>("loading")
+
+  useEffect(() => {
+    // Keep in-memory token in sync when api interceptor auto-refreshes it
+    setOnTokenRefreshed((newToken) => {
+      setAccessToken(newToken)
+    })
+  }, [])
 
   useEffect(() => {
     let active = true

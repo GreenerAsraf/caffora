@@ -16,6 +16,7 @@ import { useCart } from '@/hooks/use-cart';
 import { useAuth } from '@/components/providers/auth-provider';
 import { formatPrice } from '@/lib/utils';
 import { shippingAddressSchema, type ShippingAddressInput } from '@/lib/validations/checkout';
+import { ordersApi } from '@/lib/api';
 
 const steps = ['Shipping Address', 'Payment', 'Review & Place Order'];
 const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -173,14 +174,22 @@ export default function CheckoutPage() {
 
     setPlacing(true);
     try {
-      const orderId = `ord-${Date.now()}`;
-      const order = { id: orderId, items, total: grandTotal, subtotal: total, shipping, tax, status: 'PROCESSING', address, paymentId: payment.paymentId, createdAt: new Date().toISOString() };
-      localStorage.setItem(`caffora-order-${orderId}`, JSON.stringify(order));
-      clearCart();
-      toast.success('Order placed successfully.');
-      router.push(`/orders/${orderId}`);
-    } catch {
-      toast.error('Unable to place order.');
+      if (accessToken) {
+        const payload = await ordersApi.create(address, accessToken);
+        clearCart();
+        toast.success('Order placed successfully.');
+        router.push(`/orders/${payload.id}`);
+      } else {
+        // Fallback for mock/guest mode (though normally they'd be blocked by the auth check earlier)
+        const orderId = `ord-${Date.now()}`;
+        const order = { id: orderId, items, total: grandTotal, subtotal: total, shipping, tax, status: 'PROCESSING', address, paymentId: payment.paymentId, createdAt: new Date().toISOString() };
+        localStorage.setItem(`caffora-order-${orderId}`, JSON.stringify(order));
+        clearCart();
+        toast.success('Order placed successfully.');
+        router.push(`/orders/${orderId}`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Unable to place order.');
     } finally {
       setPlacing(false);
     }

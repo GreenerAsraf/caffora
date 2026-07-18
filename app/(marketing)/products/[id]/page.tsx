@@ -8,27 +8,31 @@ import { Heart, ShoppingCart, Info, Truck, ShieldCheck } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
-// This would normally fetch from our backend
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 const getProduct = async (id: string) => {
-  // Mock mock mock
-  if (id === 'not-found') return null;
-  return {
-    id,
-    title: 'Premium Organic Coffee Beans',
-    slug: id,
-    description: 'Our most popular organic blend, sourced from the finest farms in Ethiopia. Perfect for espresso or pour-over with notes of jasmine, bergamot, and blueberry.',
-    price: 24.99,
-    comparePrice: 29.99,
-    images: [
-      'https://images.unsplash.com/photo-1559525839-b184a4d698c7?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1587734195503-904fca47e0e9?auto=format&fit=crop&w=800&q=80'
-    ],
-    stock: 50,
-    category: { name: 'Coffee Beans', slug: 'coffee-beans' },
-    rating: 4.8,
-    reviewCount: 124,
-    featured: true,
-  };
+  try {
+    const res = await fetch(`${API_URL}/products/${id}`, { next: { revalidate: 60 } });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.success ? json.data : null;
+  } catch (error) {
+    console.error('Failed to fetch product', error);
+    return null;
+  }
+};
+
+const getRelated = async (categoryId: string, excludeId: string) => {
+  try {
+    const res = await fetch(`${API_URL}/products?category=${categoryId}&limit=5`, { next: { revalidate: 60 } });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const products = json.data?.products || [];
+    return products.filter((p: any) => p.id !== excludeId).slice(0, 4);
+  } catch (error) {
+    console.error('Failed to fetch related products', error);
+    return [];
+  }
 };
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -53,21 +57,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     notFound();
   }
 
-  // Mock related products
-  const related = Array.from({ length: 4 }).map((_, i) => ({
-    id: `related-${i}`,
-    title: `Similar Blend ${i + 1}`,
-    slug: `similar-blend-${i + 1}`,
-    description: 'A great alternative coffee.',
-    price: 19.99,
-    images: ['https://images.unsplash.com/photo-1559525839-b184a4d698c7?auto=format&fit=crop&w=800&q=80'],
-    stock: 10,
-    categoryId: 'cat-1',
-    category: { name: 'Coffee Beans', slug: 'coffee-beans' },
-    rating: 4.5,
-    reviewCount: 30,
-    featured: false,
-  }));
+  const related = await getRelated(product.categoryId, product.id);
 
   return (
     <div className="bg-background min-h-screen py-12">
