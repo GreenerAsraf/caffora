@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { ProductGallery } from '@/components/features/products/product-gallery';
 import { ProductReviews } from '@/components/features/products/product-reviews';
 import { RelatedProducts } from '@/components/features/products/related-products';
+import { AddToCartButton } from '@/components/features/products/add-to-cart-button';
 import { Button } from '@/components/ui/button';
 import { Heart, ShoppingCart, Info, Truck, ShieldCheck } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
@@ -68,7 +69,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           <ProductGallery images={product.images} title={product.title} />
 
           <div className="flex flex-col">
-            <Badge className="w-fit mb-4">{product.category.name}</Badge>
+            {product.category && <Badge className="w-fit mb-4">{product.category.name}</Badge>}
             <h1 className="text-4xl sm:text-5xl font-playfair font-bold text-foreground mb-4">
               {product.title}
             </h1>
@@ -90,9 +91,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-4 mb-10">
-              <Button size="lg" className="flex-1 rounded-full text-base h-14">
-                <ShoppingCart className="w-5 h-5 mr-2" /> Add to Cart
-              </Button>
+              <AddToCartButton product={product} />
               <Button size="lg" variant="outline" className="rounded-full w-full sm:w-14 h-14 shrink-0 px-0">
                 <Heart className="w-5 h-5" />
               </Button>
